@@ -1,0 +1,5 @@
+# output folder
+/out/
+
+# jvm binary files
+*.class
