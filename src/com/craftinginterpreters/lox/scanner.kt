@@ -9,7 +9,7 @@ import java.util.HashMap
 
 import com.craftinginterpreters.lox.TokenType.*
 
-internal class Scanner(private val source: String) {
+class Scanner(private val source: String) {
   private val tokens = ArrayList<Token>()
   private var start = 0
   private var current = 0
@@ -42,6 +42,8 @@ internal class Scanner(private val source: String) {
       '-' -> addToken(MINUS)
       '+' -> addToken(PLUS)
       ';' -> addToken(SEMICOLON)
+      ':' -> addToken(COLON)
+      '?' -> addToken(QUESTION)
       '*' -> addToken(STAR)
       '!' -> addToken(if (match('=')) BANG_EQUAL else BANG)
       '=' -> addToken(if (match('=')) EQUAL_EQUAL else EQUAL)
@@ -149,7 +151,6 @@ internal class Scanner(private val source: String) {
       comment()
     }
   }
-
 
   private fun match(expected: Char): Boolean {
     if (isAtEnd || source[current] != expected) {
