@@ -12,7 +12,10 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 object Lox {
+  private val interpreter = Interpreter()
+
   private var hadError = false
+  private var hadRuntimeError = false
 
   @Throws(IOException::class)
   @JvmStatic
@@ -32,6 +35,8 @@ object Lox {
     // Indicate an error in the exit code.
     if (hadError) {
       System.exit(65)
+    } else if (hadRuntimeError) {
+      System.exit(70)
     }
   }
 
@@ -58,7 +63,12 @@ object Lox {
       return
     }
 
-    println(RpnPrinter.print(expression!!))
+    interpreter.interpret(expression!!)
+  }
+
+  fun runtimeError(error: RuntimeError) {
+    println(error.message + "\n[line " + error.token.line + "]")
+    hadRuntimeError = true
   }
 
   internal fun error(line: Int, message: String) {
