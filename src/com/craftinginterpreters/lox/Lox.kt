@@ -17,7 +17,6 @@ object Lox {
   private var hadError = false
   private var hadRuntimeError = false
 
-  @Throws(IOException::class)
   @JvmStatic
   fun main(args: Array<String>) {
     when {
@@ -47,7 +46,13 @@ object Lox {
 
     while (true) {
       print("> ")
-      run(reader.readLine())
+
+      try {
+        run(reader.readLine())
+      } catch (e: Exception) {
+
+      }
+
       hadError = false
     }
   }
@@ -56,14 +61,14 @@ object Lox {
     val scanner = Scanner(source)
     val tokens = scanner.scanTokens()
     val parser = Parser(tokens)
-    val expression = parser.parse()
+    val statements = parser.parse()
 
     // Stop if there was a syntax error.
     if (hadError) {
       return
     }
 
-    interpreter.interpret(expression!!)
+    interpreter.interpret(statements)
   }
 
   fun runtimeError(error: RuntimeError) {
@@ -71,9 +76,8 @@ object Lox {
     hadRuntimeError = true
   }
 
-  internal fun error(line: Int, message: String) {
+  internal fun error(line: Int, message: String) =
     report(line, "", message)
-  }
 
   internal fun error(token: Token, message: String) {
     if (token.type == TokenType.EOF) {
@@ -84,7 +88,7 @@ object Lox {
   }
 
   private fun report(line: Int, where: String, message: String) {
-    println("[line $line] Error$where: $message")
+    println("[line $line] Error $where: $message")
     hadError = true
   }
 }

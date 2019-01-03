@@ -1,5 +1,7 @@
 # output folder
 /out/
+/lib/
+/target/
 
 # jvm binary files
 *.class

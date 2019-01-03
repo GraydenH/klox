@@ -10,6 +10,9 @@ import java.util.HashMap
 import com.craftinginterpreters.lox.TokenType.*
 
 class Scanner(private val source: String) {
+
+  // fields
+
   private val tokens = ArrayList<Token>()
   private var start = 0
   private var current = 0
@@ -18,6 +21,12 @@ class Scanner(private val source: String) {
 
   private val isAtEnd: Boolean
     get() = current >= source.length
+
+  private val peek: Char
+    get() = if (current >= source.length) '\u0000' else source[current]
+
+  private val peekNext: Char
+    get() = if (current + 1 >= source.length) '\u0000' else source[current + 1]
 
   fun scanTokens(): List<Token> {
     while (!isAtEnd) {
@@ -51,7 +60,7 @@ class Scanner(private val source: String) {
       '>' -> addToken(if (match('=')) GREATER_EQUAL else GREATER)
       '/' -> when {
         match('/') -> // A comment goes until the end of the line.
-          while (peek() != '\n' && !isAtEnd) {
+          while (peek != '\n' && !isAtEnd) {
             advance()
           }
         match('*') -> { // multi-line comment
@@ -61,8 +70,7 @@ class Scanner(private val source: String) {
         else -> addToken(SLASH)
       }
 
-      ' ', '\r', '\t' -> {
-      }
+      ' ', '\r', '\t' -> {}
       '\n' -> line++
       '"' -> string()
 
@@ -75,7 +83,7 @@ class Scanner(private val source: String) {
   }
 
   private fun identifier() {
-    while (isAlphaNumeric(peek())) {
+    while (isAlphaNumeric(peek)) {
       advance()
     }
 
@@ -87,15 +95,15 @@ class Scanner(private val source: String) {
   }
 
   private fun number() {
-    while (isDigit(peek())) {
+    while (isDigit(peek)) {
       advance()
     }
 
     // Look for a fractional part.
-    if (peek() == '.' && isDigit(peekNext())) {
+    if (peek == '.' && isDigit(peekNext)) {
       // Consume the "."
       advance()
-      while (isDigit(peek())) {
+      while (isDigit(peek)) {
         advance()
       }
     }
@@ -104,8 +112,8 @@ class Scanner(private val source: String) {
   }
 
   private fun string() {
-    while (peek() != '"' && !isAtEnd) {
-      if (peek() == '\n') {
+    while (peek != '"' && !isAtEnd) {
+      if (peek == '\n') {
         line++
       }
 
@@ -123,13 +131,23 @@ class Scanner(private val source: String) {
 
     // Trim the surrounding quotes.
     // @todo unescape escape sequences here
-    val value = source.substring(start + 1, current - 1)
+    val value = escape(source.substring(start + 1, current - 1))
     addToken(STRING, value)
+  }
+
+  private fun escape(string: String): String {
+    var result = string
+
+    for (char in listOf("\\t", "\\n", "\\r")) {
+      result = result.replace(char, char.drop(1))
+    }
+
+    return result
   }
 
   private fun comment() {
     while (!lookAhead('*', '/') && !lookAhead('/', '*') && !isAtEnd) {
-      if (peek() == '\n') {
+      if (peek == '\n') {
         line++
       }
 
@@ -152,6 +170,7 @@ class Scanner(private val source: String) {
     }
   }
 
+
   private fun match(expected: Char): Boolean {
     if (isAtEnd || source[current] != expected) {
       return false
@@ -161,37 +180,17 @@ class Scanner(private val source: String) {
     return true
   }
 
-  private fun peek(): Char {
-    if (current >= source.length) {
-      return '\u0000'
-    }
+  private fun lookAhead(c1: Char, c2: Char): Boolean =
+    peek == c1 && peekNext == c2
 
-    return source[current]
-  }
+  private fun isAlpha(c: Char): Boolean =
+    c in 'a'..'z' || c in 'A'..'Z' || c == '_'
 
-  private fun peekNext(): Char {
-    if (current + 1 >= source.length) {
-      return '\u0000'
-    }
+  private fun isAlphaNumeric(c: Char): Boolean =
+    isAlpha(c) || isDigit(c)
 
-    return source[current + 1]
-  }
-
-  private fun lookAhead(c1: Char, c2: Char): Boolean {
-    return peek() == c1 && peekNext() == c2
-  }
-
-  private fun isAlpha(c: Char): Boolean {
-    return c in 'a'..'z' || c in 'A'..'Z' || c == '_'
-  }
-
-  private fun isAlphaNumeric(c: Char): Boolean {
-    return isAlpha(c) || isDigit(c)
-  }
-
-  private fun isDigit(c: Char): Boolean {
-    return c in '0'..'9'
-  }
+  private fun isDigit(c: Char): Boolean =
+    c in '0'..'9'
 
   private fun advance(): Char {
     current++

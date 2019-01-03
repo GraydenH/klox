@@ -21,6 +21,11 @@ object GenerateAst {
         "Literal  : Object value",
         "Unary    : Token operator, Expr right"
     ))
+
+    defineAst(outputDir, "Stmt", Arrays.asList(
+      "Expression : Expr expression",
+      "Print      : Expr expression"
+    ))
   }
 
   @Throws(IOException::class)
@@ -28,7 +33,7 @@ object GenerateAst {
     val path = "$outputDir/$baseName.java"
     val writer = PrintWriter(path, "UTF-8")
 
-    writer.println("package com.craftinginterpreters.lox;")
+    writer.println("package com.craftinginterpreters.Lox;")
     writer.println()
     writer.println("import java.util.List;")
     writer.println()
