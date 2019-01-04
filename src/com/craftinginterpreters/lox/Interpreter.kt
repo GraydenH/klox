@@ -4,7 +4,14 @@ import com.craftinginterpreters.lox.TokenType.*
 
 internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
+  // fields
+
   private var environment = Environment()
+  private var hadBreak = false
+
+  // types
+
+  class Breakable: Throwable()
 
   // entry point
 
@@ -19,6 +26,27 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
   }
 
   // statement visitor implementation
+
+  override fun visitBreakStmt(stmt: Stmt.Break) {
+    hadBreak = true
+    throw Breakable()
+  }
+
+  override fun visitWhileStmt(stmt: Stmt.While) {
+    while (isTruthy(evaluate(stmt.condition)) && !hadBreak) {
+      execute(stmt.body)
+    }
+
+    hadBreak = false
+  }
+
+  override fun visitIfStmt(stmt: Stmt.If) {
+    if (isTruthy(evaluate(stmt.condition))) {
+      execute(stmt.then)
+    } else if (stmt.other !is Stmt.None) {
+      execute(stmt.other)
+    }
+  }
 
   override fun visitBlockStmt(stmt: Stmt.Block) {
     executeBlock(stmt.statements, Environment(environment))
@@ -39,6 +67,17 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
   // expression vistor implementation
 
+  override fun visitLogicalExpr(expr: Expr.Logical): Any {
+    val left = evaluate(expr.left)
+
+    if (expr.operator.type === TokenType.OR) {
+      if (isTruthy(left)) { return left }
+    } else {
+      if (!isTruthy(left)) { return left }
+    }
+
+    return evaluate(expr.right)
+  }
 
   override fun visitAssignExpr(expr: Expr.Assign): Any {
     val value = evaluate(expr.value)
@@ -49,20 +88,6 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
   override fun visitVariableExpr(expr: Expr.Variable): Any {
     return environment[expr.name]
-  }
-
-  override fun visitTernaryExpr(expr: Expr.Ternary): Any {
-    val left = evaluate(expr.left)
-
-    if (expr.first.type == QUESTION && expr.second.type == COLON) {
-      return if (isTruthy(left)) {
-        evaluate(expr.middle)
-      } else {
-        evaluate(expr.right)
-      }
-    } else {
-      throw RuntimeError(expr.first, "Expect ternary operator.")
-    }
   }
 
   override fun visitUnaryExpr(expr: Expr.Unary): Any {
@@ -172,7 +197,7 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
       for (statement in statements) {
         execute(statement)
       }
-    } finally {
+    } catch (b: Breakable) {} finally {
       this.environment = previous
     }
   }

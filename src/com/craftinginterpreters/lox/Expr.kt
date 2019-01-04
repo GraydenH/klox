@@ -9,28 +9,18 @@ abstract class Expr {
   // implementing types
 
   internal interface Visitor<R> {
-    fun visitTernaryExpr(expr: Ternary): R
     fun visitBinaryExpr(expr: Binary): R
     fun visitGroupingExpr(expr: Grouping): R
     fun visitLiteralExpr(expr: Literal): R
     fun visitUnaryExpr(expr: Unary): R
     fun visitVariableExpr(expr: Variable): R
     fun visitAssignExpr(expr: Assign): R
+    fun visitLogicalExpr(expr: Logical): R
   }
 
   class None : Expr() {
     override fun <R> accept(visitor: Visitor<R>): R =
       throw error("Visited non expression.")
-  }
-
-  class Error : Expr() {
-    override fun <R> accept(visitor: Visitor<R>): R =
-      throw error("Visited error expression.")
-  }
-
-  class Ternary(val left: Expr, val first: Token, val middle: Expr, val second: Token, val right: Expr) : Expr() {
-    override fun <R> accept(visitor: Visitor<R>): R =
-      visitor.visitTernaryExpr(this)
   }
 
   class Binary(val left: Expr, val operator: Token, val right: Expr) : Expr() {
@@ -61,5 +51,10 @@ abstract class Expr {
   class Assign(val name: Token, val value: Expr) : Expr() {
     override fun <R> accept(visitor: Visitor<R>): R =
       visitor.visitAssignExpr(this)
+  }
+
+  class Logical(val left: Expr, val operator: Token, val right: Expr) : Expr() {
+    override fun <R> accept(visitor: Visitor<R>): R =
+      visitor.visitLogicalExpr(this)
   }
 }

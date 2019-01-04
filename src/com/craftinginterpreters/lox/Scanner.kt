@@ -13,6 +13,26 @@ class Scanner(private val source: String) {
 
   // fields
 
+  private val keywords: Map<String, TokenType> = mapOf(
+    "and" to AND,
+    "class" to CLASS,
+    "else" to ELSE,
+    "false" to FALSE,
+    "for" to FOR,
+    "fun" to FUN,
+    "if" to IF,
+    "nil" to NIL,
+    "or" to OR,
+    "print" to PRINT,
+    "return" to RETURN,
+    "super" to SUPER,
+    "this" to THIS,
+    "true" to TRUE,
+    "var" to VAR,
+    "while" to WHILE,
+    "break" to BREAK
+  )
+
   private val tokens = ArrayList<Token>()
   private var start = 0
   private var current = 0
@@ -202,27 +222,6 @@ class Scanner(private val source: String) {
     tokens.add(Token(type, text, literal, line))
   }
 
-  companion object {
-    private val keywords: MutableMap<String, TokenType>
-
-    init {
-      keywords = HashMap()
-      keywords["and"] = AND
-      keywords["class"] = CLASS
-      keywords["else"] = ELSE
-      keywords["false"] = FALSE
-      keywords["for"] = FOR
-      keywords["fun"] = FUN
-      keywords["if"] = IF
-      keywords["nil"] = NIL
-      keywords["or"] = OR
-      keywords["print"] = PRINT
-      keywords["return"] = RETURN
-      keywords["super"] = SUPER
-      keywords["this"] = THIS
-      keywords["true"] = TRUE
-      keywords["var"] = VAR
-      keywords["while"] = WHILE
-    }
+  init {
   }
 }

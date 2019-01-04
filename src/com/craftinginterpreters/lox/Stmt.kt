@@ -9,11 +9,14 @@ abstract class Stmt {
     fun visitPrintStmt(stmt: Print): R
     fun visitVarStmt(stmt: Var): R
     fun visitBlockStmt(stmt: Block): R
+    fun visitIfStmt(stmt: If): R
+    fun visitWhileStmt(stmt: While): R
+    fun visitBreakStmt(stmt: Break): R
   }
 
-  internal class Error : Stmt() {
+  internal class None : Stmt() {
     override fun <R> accept(visitor: Visitor<R>): R =
-      throw error("Visited error statement.")
+      throw error("Visited non statement.")
   }
 
   internal class Expression(val expression: Expr) : Stmt() {
@@ -34,5 +37,20 @@ abstract class Stmt {
   internal class Block(val statements: List<Stmt>) : Stmt() {
     override fun <R> accept(visitor: Visitor<R>): R =
       visitor.visitBlockStmt(this)
+  }
+
+  internal class If(val condition: Expr, val then: Stmt, val other: Stmt= None()) : Stmt() {
+    override fun <R> accept(visitor: Visitor<R>): R =
+      visitor.visitIfStmt(this)
+  }
+
+  internal class While(val condition: Expr, val body: Stmt) : Stmt() {
+    override fun <R> accept(visitor: Visitor<R>): R =
+      visitor.visitWhileStmt(this)
+  }
+
+  internal class Break : Stmt() {
+    override fun <R> accept(visitor: Visitor<R>): R =
+      visitor.visitBreakStmt(this)
   }
 }
