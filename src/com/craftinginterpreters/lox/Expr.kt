@@ -16,6 +16,8 @@ abstract class Expr {
     fun visitVariableExpr(expr: Variable): R
     fun visitAssignExpr(expr: Assign): R
     fun visitLogicalExpr(expr: Logical): R
+    fun visitCallExpr(expr: Call): R
+    fun visitFuncExpr(expr: Func): R
   }
 
   class None : Expr() {
@@ -33,7 +35,7 @@ abstract class Expr {
       visitor.visitGroupingExpr(this)
   }
 
-  class Literal(val value: Any?) : Expr() {
+  class Literal(val value: Any) : Expr() {
     override fun <R> accept(visitor: Visitor<R>): R =
       visitor.visitLiteralExpr(this)
   }
@@ -56,5 +58,15 @@ abstract class Expr {
   class Logical(val left: Expr, val operator: Token, val right: Expr) : Expr() {
     override fun <R> accept(visitor: Visitor<R>): R =
       visitor.visitLogicalExpr(this)
+  }
+
+  class Call(val callee: Expr, val paren: Token, val arguments: List<Expr>) : Expr() {
+    override fun <R> accept(visitor: Visitor<R>): R =
+      visitor.visitCallExpr(this)
+  }
+
+  class Func(val params: List<Token>, val body: List<Stmt>) : Expr() {
+    override fun <R> accept(visitor: Visitor<R>): R =
+      visitor.visitFuncExpr(this)
   }
 }

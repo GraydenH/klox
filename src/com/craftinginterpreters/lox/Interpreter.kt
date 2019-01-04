@@ -1,17 +1,38 @@
 package com.craftinginterpreters.lox
 
 import com.craftinginterpreters.lox.TokenType.*
+import java.util.ArrayList
 
-internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
+
+class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
   // fields
 
-  private var environment = Environment()
+  private val globals = Environment()
+  private var environment = globals
   private var hadBreak = false
 
   // types
 
-  class Breakable: Throwable()
+  private class Break: Throwable()
+
+  // constructor
+
+  init {
+    globals.define("clock", object : LoxCallable {
+      override fun arity(): Int {
+        return 0
+      }
+
+      override fun call(interpreter: Interpreter, arguments: List<Any>): Any {
+        return System.currentTimeMillis().toDouble() / 1000.0
+      }
+
+      override fun toString(): String {
+        return "<native fn>"
+      }
+    })
+  }
 
   // entry point
 
@@ -27,9 +48,20 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
   // statement visitor implementation
 
+  override fun visitReturnStmt(stmt: Stmt.Return) {
+    val value = if (stmt.value !is Expr.None) evaluate(stmt.value) else None()
+
+    throw Return(value)
+  }
+
+  override fun visitFunctionStmt(stmt: Stmt.Function) {
+    val function = LoxFunction(stmt.function, environment)
+    environment.define(stmt.name.lexeme, function)
+  }
+
   override fun visitBreakStmt(stmt: Stmt.Break) {
     hadBreak = true
-    throw Breakable()
+    throw Break()
   }
 
   override fun visitWhileStmt(stmt: Stmt.While) {
@@ -66,6 +98,31 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
   }
 
   // expression vistor implementation
+
+  override fun visitFuncExpr(expr: Expr.Func): Any {
+    return LoxFunction(expr, environment)
+  }
+
+  override fun visitCallExpr(expr: Expr.Call): Any {
+    val callee = evaluate(expr.callee)
+
+    val arguments = ArrayList<Any>()
+    for (argument in expr.arguments) {
+      arguments.add(evaluate(argument))
+    }
+
+    if (callee !is LoxCallable) {
+      throw RuntimeError(expr.paren, "Can only call functions and classes.")
+    }
+
+    if (arguments.size != callee.arity()) {
+      throw RuntimeError(expr.paren, "Expected " +
+        callee.arity() + " arguments but got " +
+        arguments.size + ".")
+    }
+
+    return callee.call(this, arguments)
+  }
 
   override fun visitLogicalExpr(expr: Expr.Logical): Any {
     val left = evaluate(expr.left)
@@ -104,7 +161,7 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
   }
 
   override fun visitLiteralExpr(expr: Expr.Literal): Any =
-    expr.value ?: "null"
+    expr.value
 
   override fun visitGroupingExpr(expr: Expr.Grouping): Any =
     evaluate(expr.expression)
@@ -189,7 +246,7 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
     return text
   }
 
-  private fun executeBlock(statements: List<Stmt>, environment: Environment) {
+  internal fun executeBlock(statements: List<Stmt>, environment: Environment) {
     val previous = this.environment
     try {
       this.environment = environment
@@ -197,7 +254,7 @@ internal class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
       for (statement in statements) {
         execute(statement)
       }
-    } catch (b: Breakable) {} finally {
+    } catch (b: Break) {} finally {
       this.environment = previous
     }
   }

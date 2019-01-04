@@ -4,6 +4,7 @@ import com.craftinginterpreters.lox.TokenType.*
 import java.lang.RuntimeException
 import java.util.ArrayList
 import java.util.Arrays
+import java.time.temporal.TemporalAdjusters.previous
 
 
 
@@ -47,6 +48,14 @@ class Parser (private val tokens: List<Token>) {
       false
     } else {
       peek.type == type
+    }
+  }
+
+  private fun checkNext(tokenType: TokenType): Boolean {
+    return when {
+      isAtEnd -> false
+      tokens[current + 1].type === EOF -> false
+      else -> tokens[current + 1].type === tokenType
     }
   }
 
@@ -115,11 +124,66 @@ class Parser (private val tokens: List<Token>) {
     }
   }
 
+  private fun function(kind: String): Expr.Func {
+    consume(LEFT_PAREN)
+    val parameters = ArrayList<Token>()
+    if (!check(RIGHT_PAREN)) {
+      do {
+        if (parameters.size >= 8) {
+          error(peek, "Cannot have more than 8 parameters.")
+        }
+
+        parameters.add(consume(IDENTIFIER))
+      } while (match(COMMA))
+    }
+    consume(RIGHT_PAREN)
+
+    consume(LEFT_BRACE)
+    val body = block()
+    return Expr.Func(parameters, body)
+  }
+
+  private fun block(): List<Stmt> {
+    val statements = ArrayList<Stmt>()
+
+    while (!check(RIGHT_BRACE) && !isAtEnd) {
+      statements.add(declaration())
+    }
+
+    consume(RIGHT_BRACE)
+    return statements
+  }
+
+  private fun finishCall(callee: Expr): Expr {
+    val arguments = ArrayList<Expr>()
+    if (!check(RIGHT_PAREN)) {
+      do {
+        if (arguments.size >= 8) {
+          error(peek, "Cannot have more than 8 arguments.")
+        }
+
+        arguments.add(assignment())
+      } while (match(COMMA))
+    }
+
+    val paren = consume(RIGHT_PAREN)
+
+    return Expr.Call(callee, paren, arguments)
+  }
+
   // rules
 
   private fun declaration(): Stmt {
     return try {
-      if (match(VAR)) varDeclaration() else statement()
+      when {
+        match(VAR) -> varDeclaration()
+        check(FUN) && checkNext(IDENTIFIER) -> {
+          consume(FUN)
+          val name = consume(IDENTIFIER)
+          Stmt.Function(name, function("function"))
+        }
+        else -> statement()
+      }
     } catch (error: ParseError) {
       synchronize()
       Stmt.None()
@@ -144,11 +208,20 @@ class Parser (private val tokens: List<Token>) {
       match(PRINT) -> printStatement()
       match(LEFT_BRACE) -> Stmt.Block(block())
       match(IF) -> ifStatement()
+      match(RETURN) -> returnStatement()
       match(WHILE) -> whileStatement()
       match(FOR) -> forStatement()
       match(BREAK) -> breakStatement()
       else -> expressionStatement()
     }
+  }
+
+  private fun returnStatement(): Stmt {
+    val keyword = previous
+    val value = if (!check(SEMICOLON)) expression() else Expr.None()
+
+    consume(SEMICOLON)
+    return Stmt.Return(keyword, value)
   }
 
   private fun breakStatement(): Stmt {
@@ -217,23 +290,13 @@ class Parser (private val tokens: List<Token>) {
     val condition = expression()
     consume(RIGHT_PAREN)
 
+    consume(LEFT_BRACE)
     val thenBranch = Stmt.Block(block())
     return if (match(ELSE)) {
       Stmt.If(condition, thenBranch, Stmt.Block(block()))
     } else {
       Stmt.If(condition, thenBranch)
     }
-  }
-
-  private fun block(): List<Stmt> {
-    val statements = ArrayList<Stmt>()
-
-    while (!check(RIGHT_BRACE) && !isAtEnd) {
-      statements.add(declaration())
-    }
-
-    consume(RIGHT_BRACE)
-    return statements
   }
 
   private fun printStatement(): Stmt {
@@ -248,7 +311,10 @@ class Parser (private val tokens: List<Token>) {
     return Stmt.Expression(expr)
   }
 
-  private fun expression() = assignment()
+  private fun expression() = seperator()
+
+  private fun seperator(): Expr =
+    leftAssociate(::assignment, COMMA)
 
   private fun assignment(): Expr {
     val expr = or()
@@ -281,19 +347,16 @@ class Parser (private val tokens: List<Token>) {
   }
 
   private fun and(): Expr {
-    var expr = seperator()
+    var expr = equality()
 
     while (match(AND)) {
       val operator = previous
-      val right = seperator()
+      val right = equality()
       expr = Expr.Logical(expr, operator, right)
     }
 
     return expr
   }
-
-  private fun seperator(): Expr =
-    leftAssociate(::equality, COMMA)
 
   private fun equality(): Expr =
     leftAssociate(::comparison, BANG_EQUAL, EQUAL_EQUAL)
@@ -314,16 +377,31 @@ class Parser (private val tokens: List<Token>) {
       return Expr.Unary(operator, right)
     }
 
-    return primary()
+    return call()
+  }
+
+  private fun call(): Expr {
+    var expr = primary()
+
+    while (true) {
+      if (match(LEFT_PAREN)) {
+        expr = finishCall(expr)
+      } else {
+        break
+      }
+    }
+
+    return expr
   }
 
   private fun primary(): Expr {
     return when {
       match(FALSE) -> Expr.Literal(false)
       match(TRUE) -> Expr.Literal(true)
-      match(NIL) -> Expr.Literal(null)
+      match(NIL) -> Expr.Literal(None())
       match(NUMBER, STRING) -> Expr.Literal(previous.literal)
       match(IDENTIFIER) -> Expr.Variable(previous)
+      match(FUN) -> function("anonymous")
       match(LEFT_PAREN) -> {
         val expr = expression()
         consume(RIGHT_PAREN)

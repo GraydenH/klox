@@ -55,7 +55,7 @@ class Scanner(private val source: String) {
       scanToken()
     }
 
-    tokens.add(Token(EOF, "", null, line))
+    tokens.add(Token(EOF, "", None(), line))
     return tokens
   }
 
@@ -217,7 +217,7 @@ class Scanner(private val source: String) {
     return source[current - 1]
   }
 
-  private fun addToken(type: TokenType, literal: Any? = null) {
+  private fun addToken(type: TokenType, literal: Any = None()) {
     val text = source.substring(start, current)
     tokens.add(Token(type, text, literal, line))
   }
