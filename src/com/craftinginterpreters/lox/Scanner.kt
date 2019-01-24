@@ -7,13 +7,13 @@ package com.craftinginterpreters.lox
 import java.util.ArrayList
 import java.util.HashMap
 
-import com.craftinginterpreters.lox.TokenType.*
+import com.craftinginterpreters.lox.Token.Type.*
 
 class Scanner(private val source: String) {
 
   // fields
 
-  private val keywords: Map<String, TokenType> = mapOf(
+  private val keywords: Map<String, Token.Type> = mapOf(
     "and" to AND,
     "class" to CLASS,
     "else" to ELSE,
@@ -217,7 +217,7 @@ class Scanner(private val source: String) {
     return source[current - 1]
   }
 
-  private fun addToken(type: TokenType, literal: Any = None()) {
+  private fun addToken(type: Token.Type, literal: Any = None()) {
     val text = source.substring(start, current)
     tokens.add(Token(type, text, literal, line))
   }

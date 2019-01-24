@@ -1,14 +1,15 @@
 package com.craftinginterpreters.lox
 
-import com.craftinginterpreters.lox.TokenType.*
+import com.craftinginterpreters.lox.Token.Type.*
 import java.util.ArrayList
-
+import java.util.HashMap
 
 class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
   // fields
 
   private val globals = Environment()
+  private val locals = HashMap<Expr, Int>()
   private var environment = globals
   private var hadBreak = false
 
@@ -127,7 +128,7 @@ class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
   override fun visitLogicalExpr(expr: Expr.Logical): Any {
     val left = evaluate(expr.left)
 
-    if (expr.operator.type === TokenType.OR) {
+    if (expr.operator.type === Token.Type.OR) {
       if (isTruthy(left)) { return left }
     } else {
       if (!isTruthy(left)) { return left }
@@ -138,13 +139,18 @@ class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
 
   override fun visitAssignExpr(expr: Expr.Assign): Any {
     val value = evaluate(expr.value)
+    val distance = locals[expr]
+    if (distance != null) {
+      environment.assignAt(distance, expr.name, value)
+    } else {
+      globals.assign(expr.name, value)
+    }
 
-    environment.assign(expr.name, value)
     return value
   }
 
   override fun visitVariableExpr(expr: Expr.Variable): Any {
-    return environment[expr.name]
+    return lookUpVariable(expr.name, expr)
   }
 
   override fun visitUnaryExpr(expr: Expr.Unary): Any {
@@ -222,6 +228,9 @@ class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
   private fun evaluate(expr: Expr): Any =
     expr.accept(this)
 
+  fun resolve(expr: Expr, depth: Int) =
+    locals.put(expr, depth)
+
   private fun isTruthy(value: Any?): Boolean =
     if (value == null) false else value as Boolean
 
@@ -256,6 +265,15 @@ class Interpreter : Expr.Visitor<Any>, Stmt.Visitor<Unit>  {
       }
     } catch (b: Break) {} finally {
       this.environment = previous
+    }
+  }
+
+  private fun lookUpVariable(name: Token, expr: Expr): Any {
+    val distance = locals[expr]
+    return if (distance != null) {
+      environment.getAt(distance, name.lexeme)
+    } else {
+      globals[name]
     }
   }
 }

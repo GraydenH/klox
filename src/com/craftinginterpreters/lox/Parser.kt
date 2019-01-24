@@ -1,6 +1,6 @@
 package com.craftinginterpreters.lox
 
-import com.craftinginterpreters.lox.TokenType.*
+import com.craftinginterpreters.lox.Token.Type.*
 import java.lang.RuntimeException
 import java.util.ArrayList
 import java.util.Arrays
@@ -43,7 +43,7 @@ class Parser (private val tokens: List<Token>) {
 
   // utils
 
-  private fun check(type: TokenType): Boolean {
+  private fun check(type: Token.Type): Boolean {
     return if (isAtEnd) {
       false
     } else {
@@ -51,7 +51,7 @@ class Parser (private val tokens: List<Token>) {
     }
   }
 
-  private fun checkNext(tokenType: TokenType): Boolean {
+  private fun checkNext(tokenType: Token.Type): Boolean {
     return when {
       isAtEnd -> false
       tokens[current + 1].type === EOF -> false
@@ -59,7 +59,7 @@ class Parser (private val tokens: List<Token>) {
     }
   }
 
-  private fun match (vararg types: TokenType): Boolean {
+  private fun match (vararg types: Token.Type): Boolean {
     for (type in types) {
       if (check(type)) {
         advance()
@@ -78,7 +78,7 @@ class Parser (private val tokens: List<Token>) {
     return previous
   }
 
-  private fun leftAssociate(operand: () -> Expr, vararg types: TokenType): Expr {
+  private fun leftAssociate(operand: () -> Expr, vararg types: Token.Type): Expr {
     var expr = operand()
     val error = expr is Expr.None
 
@@ -95,7 +95,7 @@ class Parser (private val tokens: List<Token>) {
     return expr
   }
 
-  private fun consume(type: TokenType): Token {
+  private fun consume(type: Token.Type): Token {
     if (check(type)) {
       return advance()
     } else {

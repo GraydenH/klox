@@ -14,8 +14,8 @@ import java.nio.file.Paths
 object Lox {
   private val interpreter = Interpreter()
 
-  private var hadError = false
-  private var hadRuntimeError = false
+  var hadError = false
+  var hadRuntimeError = false
 
   @JvmStatic
   fun main(args: Array<String>) {
@@ -27,11 +27,10 @@ object Lox {
   }
 
   @Throws(IOException::class)
-  private fun runFile(path: String) {
+  fun runFile(path: String) {
     val bytes = Files.readAllBytes(Paths.get(path))
     run(String(bytes, Charset.defaultCharset()))
 
-    // Indicate an error in the exit code.
     if (hadError) {
       System.exit(65)
     } else if (hadRuntimeError) {
@@ -57,13 +56,20 @@ object Lox {
     }
   }
 
-  private fun run(source: String) {
+  fun run(source: String) {
     val scanner = Scanner(source)
     val tokens = scanner.scanTokens()
     val parser = Parser(tokens)
     val statements = parser.parse()
 
     // Stop if there was a syntax error.
+    if (hadError) {
+      return
+    }
+
+    val resolver = Resolver(interpreter)
+    resolver.resolve(statements)
+
     if (hadError) {
       return
     }
@@ -80,7 +86,7 @@ object Lox {
     report(line, "", message)
 
   internal fun error(token: Token, message: String) {
-    if (token.type == TokenType.EOF) {
+    if (token.type == Token.Type.EOF) {
       report(token.line, " at end", message)
     } else {
       report(token.line, " at '" + token.lexeme + "'", message)
