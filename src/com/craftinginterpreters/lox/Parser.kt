@@ -4,7 +4,8 @@ import com.craftinginterpreters.lox.Token.Type.*
 import java.lang.RuntimeException
 import java.util.ArrayList
 import java.util.Arrays
-import java.time.temporal.TemporalAdjusters.previous
+
+
 
 
 
@@ -188,6 +189,20 @@ class Parser (private val tokens: List<Token>) {
       synchronize()
       Stmt.None()
     }
+  }
+
+  private fun classDeclaration(): Stmt {
+    val name = consume(IDENTIFIER)
+    consume(LEFT_BRACE)
+
+    val methods = ArrayList<Stmt.Function>()
+    while (!check(RIGHT_BRACE) && !isAtEnd) {
+      methods.add(Stmt.Function(consume(IDENTIFIER), function("function")))
+    }
+
+    consume(RIGHT_BRACE)
+
+    return Stmt.Class(name, methods)
   }
 
   private fun varDeclaration(): Stmt {
