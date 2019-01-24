@@ -47,53 +47,55 @@ internal class Scanner(private val source: String) {
       '=' -> addToken(if (match('=')) EQUAL_EQUAL else EQUAL)
       '<' -> addToken(if (match('=')) LESS_EQUAL else LESS)
       '>' -> addToken(if (match('=')) GREATER_EQUAL else GREATER)
-      '/' -> if (match('/')) {
-        // A comment goes until the end of the line.
-        while (peek() != '\n' && !isAtEnd) advance()
-      } else if (match('*')) { // multi-line comment
-        comments++
-        comment()
-      } else {
-        addToken(SLASH)
+      '/' -> when {
+        match('/') -> // A comment goes until the end of the line.
+          while (peek() != '\n' && !isAtEnd) {
+            advance()
+          }
+        match('*') -> { // multi-line comment
+          comments++
+          comment()
+        }
+        else -> addToken(SLASH)
       }
 
       ' ', '\r', '\t' -> {
       }
-
       '\n' -> line++
-
       '"' -> string()
 
-      else -> if (isDigit(c)) {
-        number()
-      } else if (isAlpha(c)) {
-        identifier()
-      } else {
-        Lox.error(line, "Unexpected character.")
+      else -> when {
+        isDigit(c) -> number()
+        isAlpha(c) -> identifier()
+        else -> Lox.error(line, "Unexpected character.")
       }
-    }// Ignore whitespace.
+    } // Ignore whitespace.
   }
 
   private fun identifier() {
-    while (isAlphaNumeric(peek())) advance()
+    while (isAlphaNumeric(peek())) {
+      advance()
+    }
 
     // See if the identifier is a reserved word.
     val text = source.substring(start, current)
+    val type = keywords[text] ?: IDENTIFIER
 
-    var type: TokenType? = keywords[text]
-    if (type == null) type = IDENTIFIER
     addToken(type)
   }
 
   private fun number() {
-    while (isDigit(peek())) advance()
+    while (isDigit(peek())) {
+      advance()
+    }
 
     // Look for a fractional part.
     if (peek() == '.' && isDigit(peekNext())) {
       // Consume the "."
       advance()
-
-      while (isDigit(peek())) advance()
+      while (isDigit(peek())) {
+        advance()
+      }
     }
 
     addToken(NUMBER, java.lang.Double.parseDouble(source.substring(start, current)))
@@ -101,7 +103,10 @@ internal class Scanner(private val source: String) {
 
   private fun string() {
     while (peek() != '"' && !isAtEnd) {
-      if (peek() == '\n') line++
+      if (peek() == '\n') {
+        line++
+      }
+
       advance()
     }
 
@@ -122,7 +127,10 @@ internal class Scanner(private val source: String) {
 
   private fun comment() {
     while (!lookAhead('*', '/') && !lookAhead('/', '*') && !isAtEnd) {
-      if (peek() === '\n') line++
+      if (peek() == '\n') {
+        line++
+      }
+
       advance()
     }
 
@@ -137,25 +145,34 @@ internal class Scanner(private val source: String) {
       advance()
     }
 
-    if (comments > 0) comment()
+    if (comments > 0) {
+      comment()
+    }
   }
 
 
   private fun match(expected: Char): Boolean {
-    if (isAtEnd) return false
-    if (source[current] != expected) return false
+    if (isAtEnd || source[current] != expected) {
+      return false
+    }
 
     current++
     return true
   }
 
   private fun peek(): Char {
-    if (current >= source.length) return '\u0000'
+    if (current >= source.length) {
+      return '\u0000'
+    }
+
     return source[current]
   }
 
   private fun peekNext(): Char {
-    if (current + 1 >= source.length) return '\u0000'
+    if (current + 1 >= source.length) {
+      return '\u0000'
+    }
+
     return source[current + 1]
   }
 
@@ -164,9 +181,7 @@ internal class Scanner(private val source: String) {
   }
 
   private fun isAlpha(c: Char): Boolean {
-    return c >= 'a' && c <= 'z' ||
-            c >= 'A' && c <= 'Z' ||
-            c == '_'
+    return c in 'a'..'z' || c in 'A'..'Z' || c == '_'
   }
 
   private fun isAlphaNumeric(c: Char): Boolean {
@@ -174,7 +189,7 @@ internal class Scanner(private val source: String) {
   }
 
   private fun isDigit(c: Char): Boolean {
-    return c >= '0' && c <= '9'
+    return c in '0'..'9'
   }
 
   private fun advance(): Char {
@@ -191,23 +206,23 @@ internal class Scanner(private val source: String) {
     private val keywords: MutableMap<String, TokenType>
 
     init {
-      keywords = HashMap<String, TokenType>()
-      keywords.put("and", AND)
-      keywords.put("class", CLASS)
-      keywords.put("else", ELSE)
-      keywords.put("false", FALSE)
-      keywords.put("for", FOR)
-      keywords.put("fun", FUN)
-      keywords.put("if", IF)
-      keywords.put("nil", NIL)
-      keywords.put("or", OR)
-      keywords.put("print", PRINT)
-      keywords.put("return", RETURN)
-      keywords.put("super", SUPER)
-      keywords.put("this", THIS)
-      keywords.put("true", TRUE)
-      keywords.put("var", VAR)
-      keywords.put("while", WHILE)
+      keywords = HashMap()
+      keywords["and"] = AND
+      keywords["class"] = CLASS
+      keywords["else"] = ELSE
+      keywords["false"] = FALSE
+      keywords["for"] = FOR
+      keywords["fun"] = FUN
+      keywords["if"] = IF
+      keywords["nil"] = NIL
+      keywords["or"] = OR
+      keywords["print"] = PRINT
+      keywords["return"] = RETURN
+      keywords["super"] = SUPER
+      keywords["this"] = THIS
+      keywords["true"] = TRUE
+      keywords["var"] = VAR
+      keywords["while"] = WHILE
     }
   }
 }

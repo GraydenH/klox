@@ -3,3 +3,7 @@
 
 # jvm binary files
 *.class
+
+# ide
+/.idea/
+*.iml

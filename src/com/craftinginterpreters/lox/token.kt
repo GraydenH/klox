@@ -4,7 +4,7 @@
 
 package com.craftinginterpreters.lox
 
-internal class Token(val type: TokenType, val lexeme: String, val literal: Any?, val line: Int) {
+class Token(private val type: TokenType, val lexeme: String, private val literal: Any?, val line: Int) {
 
   override fun toString(): String {
     return type.toString() + " " + lexeme + " " + literal
@@ -12,7 +12,7 @@ internal class Token(val type: TokenType, val lexeme: String, val literal: Any?,
 }
 
 
-internal enum class TokenType {
+enum class TokenType {
   // Single-character tokens.
   LEFT_PAREN,
   RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,

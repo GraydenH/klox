@@ -1,15 +1,7 @@
 Kotlin port of jlox (from http://www.craftinginterpreters.com/)
 
-usage:
+usage: klox [script]
 
-klox [script]
-
-or
-
-klox
+or: klox
 
 for interactive repl
-
-
-
-by Grayden Hormes

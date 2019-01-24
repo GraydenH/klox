@@ -12,16 +12,15 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 object Lox {
-  internal var hadError = false
+  private var hadError = false
 
   @Throws(IOException::class)
-  @JvmStatic fun main(args: Array<String>) {
-    if (args.size > 1) {
-      println("Usage: klox [script]")
-    } else if (args.size == 1) {
-      runFile(args[0])
-    } else {
-      runPrompt()
+  @JvmStatic
+  fun main(args: Array<String>) {
+    when {
+      args.size > 1 -> println("Usage: klox [script]")
+      args.size == 1 -> runFile(args[0])
+      else -> runPrompt()
     }
   }
 
@@ -31,7 +30,9 @@ object Lox {
     run(String(bytes, Charset.defaultCharset()))
 
     // Indicate an error in the exit code.
-    if (hadError) System.exit(65)
+    if (hadError) {
+      System.exit(65)
+    }
   }
 
   @Throws(IOException::class)
@@ -61,7 +62,7 @@ object Lox {
   }
 
   private fun report(line: Int, where: String, message: String) {
-    System.err.println("[line $line] Error$where: $message")
+    println("[line $line] Error$where: $message")
     hadError = true
   }
 }
